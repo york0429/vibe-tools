@@ -1,0 +1,2802 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="./favicon.ico" rel="icon shortcut" />
+  <meta name="theme-color" content="#050817" />
+  <title>訂閱費黑洞｜每月一點點，一年花多少？</title>
+  <meta name="description" content="用最直覺的方式管理每月訂閱支出，算出全年總花費，並模擬取消訂閱後能省下多少錢。" />
+  <meta property="og:title" content="訂閱費黑洞" />
+  <meta property="og:description" content="每月一點點，一年花多少？管理訂閱、試算全年支出與取消後可省金額。" />
+  <style>
+/* ==========================================================================
+   訂閱費黑洞 — 設計權杖與樣式
+   ========================================================================== */
+
+:root {
+  /* 太空背景 */
+  --space-950: #04060f;
+  --space-900: #050817;
+  --space-800: #0a1029;
+  --space-700: #111936;
+
+  /* 表面與邊框 */
+  --surface: rgba(13, 20, 46, 0.78);
+  --surface-strong: rgba(15, 22, 50, 0.97);
+  --surface-soft: rgba(255, 255, 255, 0.04);
+  --border: rgba(139, 122, 255, 0.18);
+  --border-strong: rgba(166, 148, 255, 0.42);
+
+  /* 文字 */
+  --text: #eef1ff;
+  --text-soft: #c9cfea;
+  --muted: #98a2cc;
+
+  /* 重點色 */
+  --violet: #8b5cf6;
+  --violet-bright: #b49cff;
+  --violet-deep: #5b21b6;
+  --orange: #ff8a3d;
+  --orange-bright: #ffb27a;
+  --danger: #ff7089;
+  --danger-strong: #e11d48;
+  --success: #5eead4;
+  --focus: #ffd166;
+
+  /* 分類色 */
+  --cat-video: #a78bfa;
+  --cat-music: #f472b6;
+  --cat-game: #38bdf8;
+  --cat-tool: #ffa94d;
+  --cat-other: #94a3b8;
+
+  /* 形狀 */
+  --radius-lg: 22px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+  --shadow-card: 0 22px 60px -38px rgba(0, 0, 0, 0.95);
+  --shadow-glow: 0 0 40px -10px rgba(139, 92, 246, 0.45);
+
+  --font-sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "Heiti TC",
+    system-ui, -apple-system, "Segoe UI", sans-serif;
+  --transition: 180ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ---------- 基礎 ---------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+html,
+body {
+  overflow-x: hidden;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--text);
+  background-color: var(--space-900);
+  background-image:
+    radial-gradient(1100px 780px at 82% -12%, rgba(124, 58, 237, 0.34), transparent 62%),
+    radial-gradient(820px 620px at -8% 12%, rgba(56, 189, 248, 0.12), transparent 58%),
+    radial-gradient(900px 700px at 52% 108%, rgba(255, 138, 61, 0.13), transparent 60%),
+    linear-gradient(180deg, #070c22 0%, #050817 48%, #04060f 100%);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+p,
+dl,
+dd,
+figure {
+  margin: 0;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+svg {
+  display: block;
+  width: 1.15em;
+  height: 1.15em;
+  flex: none;
+}
+
+::selection {
+  background: rgba(255, 138, 61, 0.35);
+  color: #fff;
+}
+
+:where(a, button, input, select, .segment__label, .switch__track):focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.skip-link {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 100;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: var(--violet);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-160%);
+  transition: transform var(--transition), opacity var(--transition);
+}
+
+.skip-link:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+/* ---------- 星空與黑洞裝飾 ---------- */
+
+.space-decor {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.stars {
+  position: absolute;
+  inset: 0;
+  background-repeat: repeat;
+  opacity: 0.55;
+}
+
+.stars--far {
+  background-image:
+    radial-gradient(1px 1px at 18% 22%, rgba(255, 255, 255, 0.85), transparent),
+    radial-gradient(1px 1px at 72% 14%, rgba(214, 205, 255, 0.8), transparent),
+    radial-gradient(1.4px 1.4px at 44% 68%, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(1px 1px at 88% 52%, rgba(200, 220, 255, 0.75), transparent),
+    radial-gradient(1px 1px at 6% 78%, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(1.2px 1.2px at 33% 38%, rgba(255, 210, 180, 0.7), transparent);
+  background-size: 420px 420px;
+  animation: twinkle 9s ease-in-out infinite alternate;
+}
+
+.stars--near {
+  background-image:
+    radial-gradient(1.8px 1.8px at 26% 12%, rgba(255, 255, 255, 0.9), transparent),
+    radial-gradient(1.6px 1.6px at 62% 82%, rgba(255, 189, 143, 0.75), transparent),
+    radial-gradient(1.8px 1.8px at 92% 34%, rgba(197, 178, 255, 0.8), transparent),
+    radial-gradient(1.4px 1.4px at 14% 58%, rgba(255, 255, 255, 0.7), transparent);
+  background-size: 640px 640px;
+  opacity: 0.4;
+  animation: twinkle 12s ease-in-out 1s infinite alternate-reverse;
+}
+
+.blackhole {
+  position: absolute;
+  top: -120px;
+  right: -120px;
+  width: 560px;
+  height: 560px;
+  opacity: 0.85;
+}
+
+.blackhole span {
+  position: absolute;
+  display: block;
+}
+
+.blackhole__halo {
+  inset: 4%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(139, 92, 246, 0.5) 0%,
+    rgba(91, 33, 182, 0.22) 42%,
+    rgba(91, 33, 182, 0) 70%
+  );
+  filter: blur(34px);
+  animation: haloPulse 8s ease-in-out infinite alternate;
+}
+
+.blackhole__disk {
+  top: 50%;
+  left: 50%;
+  width: 104%;
+  height: 24%;
+  transform: translate(-50%, -50%) rotate(-14deg);
+  border-radius: 50%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 138, 61, 0) 2%,
+    rgba(255, 138, 61, 0.55) 18%,
+    rgba(255, 219, 176, 0.95) 43%,
+    rgba(255, 138, 61, 0.8) 58%,
+    rgba(168, 85, 247, 0.55) 76%,
+    rgba(168, 85, 247, 0) 98%
+  );
+  filter: blur(12px);
+  opacity: 0.85;
+  z-index: 1;
+}
+
+.blackhole__core {
+  inset: 34%;
+  z-index: 3;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 44%, #000 0 60%, #0d0518 78%, #1c0a33 100%);
+  box-shadow:
+    0 0 26px 8px rgba(0, 0, 0, 0.95),
+    0 0 90px 26px rgba(88, 28, 135, 0.45);
+}
+
+.blackhole__ring {
+  inset: 22%;
+  z-index: 2;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(255, 138, 61, 0) 0deg,
+    rgba(255, 138, 61, 0.9) 42deg,
+    rgba(255, 231, 196, 0.95) 74deg,
+    rgba(168, 85, 247, 0.8) 138deg,
+    rgba(88, 28, 135, 0.15) 220deg,
+    rgba(255, 138, 61, 0) 360deg
+  );
+  -webkit-mask: radial-gradient(circle, transparent 0 57%, #000 62% 72%, transparent 76%);
+  mask: radial-gradient(circle, transparent 0 57%, #000 62% 72%, transparent 76%);
+  filter: blur(3px);
+  animation: spin 34s linear infinite;
+  opacity: 0.9;
+}
+
+.blackhole__spark {
+  top: 14%;
+  left: 24%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #fff4e2;
+  box-shadow: 0 0 12px 3px rgba(255, 196, 140, 0.9);
+  animation: twinkle 5s ease-in-out infinite alternate;
+}
+
+/* ---------- 頁首 ---------- */
+
+.hero {
+  position: relative;
+  z-index: 1;
+  width: min(1120px, 100% - 48px);
+  margin-inline: auto;
+  padding: clamp(56px, 9vw, 96px) 0 clamp(28px, 4vw, 40px);
+  text-align: center;
+}
+
+.hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(15, 22, 50, 0.72);
+  color: var(--violet-bright);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  backdrop-filter: blur(8px);
+}
+
+.hero__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--orange);
+  box-shadow: 0 0 10px 2px rgba(255, 138, 61, 0.75);
+  animation: twinkle 3.4s ease-in-out infinite alternate;
+}
+
+.hero__title {
+  margin-top: 18px;
+  font-size: clamp(2.7rem, 7vw, 4.5rem);
+  line-height: 1.08;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(115deg, #ffffff 8%, #ddd5ff 42%, #b49cff 72%, #ffb27a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hero__title-accent {
+  position: relative;
+  white-space: nowrap;
+  background: linear-gradient(115deg, #ffd2ab 0%, #ffb27a 38%, #ff8a3d 78%, #f97316 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 6px 26px rgba(255, 138, 61, 0.28));
+}
+
+.hero__subtitle {
+  margin-top: 14px;
+  font-size: clamp(1.15rem, 2.6vw, 1.45rem);
+  font-weight: 600;
+  color: var(--text-soft);
+  letter-spacing: 0.02em;
+}
+
+.hero__desc {
+  max-width: 34rem;
+  margin: 12px auto 0;
+  color: var(--muted);
+  font-size: 0.98rem;
+}
+
+/* ---------- 版面 ---------- */
+
+.page {
+  position: relative;
+  z-index: 1;
+  width: min(1120px, 100% - 48px);
+  margin-inline: auto;
+  display: grid;
+  gap: 24px;
+  padding-bottom: 40px;
+}
+
+.section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 16px;
+  margin-bottom: 16px;
+}
+
+.section-title {
+  font-size: clamp(1.12rem, 2vw, 1.32rem);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.section-title:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 6px;
+  border-radius: 6px;
+}
+
+.section-kicker {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.overview {
+  padding-top: 6px;
+}
+
+.estimate-note {
+  margin-top: 14px;
+  padding-left: 14px;
+  border-left: 2px solid rgba(139, 92, 246, 0.5);
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+/* ---------- 卡片 ---------- */
+
+.card {
+  position: relative;
+  padding: clamp(20px, 3vw, 26px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(155deg, rgba(139, 92, 246, 0.09), rgba(5, 8, 23, 0) 42%),
+    var(--surface);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(12px);
+  overflow: hidden;
+  animation: riseIn 0.55s cubic-bezier(0.22, 0.9, 0.3, 1) both;
+}
+
+.card::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(180, 156, 255, 0.4), transparent);
+  pointer-events: none;
+}
+
+/* ---------- 統計卡片 ---------- */
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.stat-card {
+  position: relative;
+  padding: 20px 22px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(120% 120% at 100% 0%, rgba(139, 92, 246, 0.14), transparent 55%),
+    rgba(11, 17, 40, 0.86);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  animation: riseIn 0.6s cubic-bezier(0.22, 0.9, 0.3, 1) both;
+}
+
+.stat-card:nth-child(2) {
+  animation-delay: 60ms;
+}
+
+.stat-card:nth-child(3) {
+  animation-delay: 120ms;
+}
+
+.stat-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 18px;
+  right: 18px;
+  height: 2px;
+  border-radius: 0 0 999px 999px;
+  background: linear-gradient(90deg, var(--violet), transparent);
+  opacity: 0.7;
+}
+
+.stat-card--violet {
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgba(139, 92, 246, 0.25), transparent 58%),
+    rgba(12, 18, 44, 0.9);
+}
+
+.stat-card--violet::before {
+  background: linear-gradient(90deg, var(--violet-bright), transparent);
+}
+
+.stat-card--orange {
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgba(255, 138, 61, 0.22), transparent 58%),
+    rgba(13, 17, 40, 0.9);
+}
+
+.stat-card--orange::before {
+  background: linear-gradient(90deg, var(--orange), transparent);
+}
+
+.stat-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.stat-card__label {
+  color: var(--text-soft);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.stat-card__icon {
+  display: inline-flex;
+  padding: 7px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-soft);
+  color: var(--violet-bright);
+}
+
+.stat-card--orange .stat-card__icon {
+  color: var(--orange-bright);
+}
+
+.stat-card__icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.stat-card__value {
+  margin-top: 12px;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.stat-card--violet .stat-card__value {
+  color: #cbb8ff;
+}
+
+.stat-card--orange .stat-card__value {
+  color: #ffc79c;
+}
+
+.stat-card__unit {
+  margin-left: 4px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.stat-card__hint {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+/* ---------- 工作區（表單＋模擬） ---------- */
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.18fr) minmax(0, 0.82fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.sim-card {
+  background:
+    radial-gradient(120% 100% at 100% 0%, rgba(255, 138, 61, 0.14), transparent 55%),
+    linear-gradient(155deg, rgba(139, 92, 246, 0.12), rgba(5, 8, 23, 0) 46%),
+    var(--surface);
+}
+
+/* ---------- 表單 ---------- */
+
+.form-card form {
+  display: grid;
+  gap: 16px;
+}
+
+.field {
+  display: grid;
+  gap: 7px;
+}
+
+.field--fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.field__label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  color: var(--text-soft);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.field--fieldset .field__label {
+  margin-bottom: 8px;
+}
+
+.field__required {
+  padding: 1px 7px;
+  border: 1px solid rgba(255, 138, 61, 0.35);
+  border-radius: 999px;
+  color: var(--orange-bright);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.input {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(4, 8, 24, 0.72);
+  color: var(--text);
+  font-size: 0.98rem;
+  transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+}
+
+.input::placeholder {
+  color: rgba(152, 162, 204, 0.65);
+}
+
+.input:hover {
+  border-color: rgba(166, 148, 255, 0.3);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--violet-bright);
+  background: rgba(6, 10, 30, 0.92);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.22);
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.input[aria-invalid="true"] {
+  border-color: rgba(255, 112, 137, 0.75);
+  background: rgba(60, 8, 24, 0.32);
+}
+
+.amount-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.amount-input__prefix {
+  position: absolute;
+  left: 14px;
+  z-index: 1;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+}
+
+.input--amount {
+  padding-left: 58px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.field__help {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.field__error {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  color: #ffa9b7;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.field__error::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: var(--danger);
+  box-shadow: 0 0 8px rgba(255, 112, 137, 0.8);
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 13px;
+  background: rgba(4, 8, 24, 0.72);
+}
+
+.segment {
+  position: relative;
+  display: block;
+  cursor: pointer;
+}
+
+.segment input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+}
+
+.segment__label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  border-radius: 9px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: background var(--transition), color var(--transition), box-shadow var(--transition);
+}
+
+.segment:hover .segment__label {
+  color: var(--text-soft);
+  background: rgba(139, 92, 246, 0.12);
+}
+
+.segment input:checked + .segment__label {
+  background: linear-gradient(140deg, rgba(139, 92, 246, 0.9), rgba(91, 33, 182, 0.92));
+  color: #fff;
+  box-shadow: 0 6px 18px -10px rgba(139, 92, 246, 0.9);
+}
+
+.segment input:checked + .segment__label::before {
+  content: "✓";
+  margin-right: 6px;
+  font-size: 0.78rem;
+  color: #fff;
+}
+
+.segment input:focus-visible + .segment__label {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.select-wrap {
+  position: relative;
+}
+
+.select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 44px;
+  cursor: pointer;
+}
+
+.select option {
+  background: #0a1029;
+  color: var(--text);
+}
+
+.select-wrap__icon {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.select-wrap__icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.form-note {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+/* ---------- 按鈕 ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 20px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.94rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  transition:
+    transform var(--transition),
+    box-shadow var(--transition),
+    background var(--transition),
+    border-color var(--transition),
+    color var(--transition);
+}
+
+.btn svg {
+  width: 17px;
+  height: 17px;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn--primary {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 55%, #a855f7 100%);
+  color: #fff;
+  box-shadow: 0 14px 30px -18px rgba(139, 92, 246, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.btn--primary:hover {
+  box-shadow: 0 18px 36px -16px rgba(139, 92, 246, 1), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.btn--ghost {
+  border-color: var(--border-strong);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-soft);
+}
+
+.btn--ghost:hover {
+  border-color: rgba(180, 156, 255, 0.7);
+  background: rgba(139, 92, 246, 0.14);
+  color: #fff;
+}
+
+.btn--block {
+  width: 100%;
+  margin-top: 18px;
+}
+
+.btn--small {
+  min-height: 38px;
+  padding: 0 12px;
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+
+.btn--small svg {
+  width: 15px;
+  height: 15px;
+}
+
+.btn--small:hover {
+  border-color: var(--border-strong);
+  background: rgba(139, 92, 246, 0.16);
+  color: #fff;
+}
+
+.btn--danger {
+  color: #ffb3c0;
+}
+
+.btn--danger:hover {
+  border-color: rgba(255, 112, 137, 0.55);
+  background: rgba(225, 29, 72, 0.16);
+  color: #ffd6dd;
+}
+
+.btn--danger-solid {
+  background: linear-gradient(135deg, #e11d48, #be123c);
+  color: #fff;
+  box-shadow: 0 14px 30px -20px rgba(225, 29, 72, 0.9);
+}
+
+/* ---------- 取消模擬面板 ---------- */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(139, 92, 246, 0.12);
+  color: var(--violet-bright);
+  font-size: 0.74rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.sim-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 138, 61, 0.24);
+  border-radius: 11px;
+  background: rgba(255, 138, 61, 0.08);
+  color: #ffc79c;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.sim-note svg {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+}
+
+.sim-list {
+  display: grid;
+  gap: 2px;
+  margin-top: 16px;
+}
+
+.sim-list__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding: 11px 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.09);
+}
+
+.sim-list__row:last-child {
+  border-bottom: 0;
+}
+
+.sim-list dt {
+  color: var(--muted);
+  font-size: 0.83rem;
+}
+
+.sim-list dd {
+  font-size: 1.14rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.sim-list__row--save {
+  margin-top: 4px;
+  padding: 13px 14px;
+  border: 1px solid rgba(255, 138, 61, 0.28);
+  border-radius: 12px;
+  background: linear-gradient(120deg, rgba(255, 138, 61, 0.14), rgba(139, 92, 246, 0.1));
+}
+
+.sim-list__row--save dt {
+  color: #ffd0ac;
+  font-weight: 600;
+}
+
+.sim-list__row--save dd {
+  color: var(--orange-bright);
+  font-size: 1.3rem;
+}
+
+.sim-hint {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.55;
+}
+
+/* ---------- 訂閱清單 ---------- */
+
+.count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 24px;
+  padding: 0 8px;
+  margin-left: 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(139, 92, 246, 0.16);
+  color: var(--violet-bright);
+  font-size: 0.78rem;
+  font-weight: 700;
+  vertical-align: 2px;
+}
+
+.empty-state {
+  padding: 30px 20px;
+  border: 1px dashed rgba(166, 148, 255, 0.28);
+  border-radius: var(--radius-md);
+  background: rgba(139, 92, 246, 0.05);
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.92rem;
+}
+
+.empty-state--inline {
+  padding: 20px;
+  font-size: 0.86rem;
+}
+
+.sub-list {
+  display: grid;
+  gap: 12px;
+}
+
+.sub-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px 18px;
+  padding: 17px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 16px;
+  background: linear-gradient(140deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.015));
+  transition: border-color var(--transition), background var(--transition), transform var(--transition);
+  animation: riseIn 0.4s cubic-bezier(0.22, 0.9, 0.3, 1) both;
+}
+
+.sub-item:hover {
+  border-color: var(--border-strong);
+  background: linear-gradient(140deg, rgba(139, 92, 246, 0.12), rgba(255, 255, 255, 0.02));
+}
+
+.sub-item.is-editing {
+  border-color: rgba(180, 156, 255, 0.75);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.16);
+}
+
+.sub-item.is-simulated {
+  border-color: rgba(255, 138, 61, 0.45);
+  background:
+    linear-gradient(140deg, rgba(255, 138, 61, 0.14), rgba(255, 138, 61, 0.03)),
+    rgba(10, 15, 36, 0.7);
+}
+
+.sub-item.is-simulated::before {
+  content: "";
+  position: absolute;
+  top: 14px;
+  bottom: 14px;
+  left: 0;
+  width: 3px;
+  border-radius: 0 4px 4px 0;
+  background: var(--orange);
+}
+
+.sub-item__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+
+.sub-item__name {
+  font-size: 1.06rem;
+  font-weight: 700;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.badge {
+  --badge: var(--cat-other);
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border: 1px solid color-mix(in srgb, var(--badge) 42%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--badge) 15%, transparent);
+  color: var(--badge);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.badge[data-category="video"] {
+  --badge: var(--cat-video);
+}
+
+.badge[data-category="music"] {
+  --badge: var(--cat-music);
+}
+
+.badge[data-category="game"] {
+  --badge: var(--cat-game);
+}
+
+.badge[data-category="tool"] {
+  --badge: var(--cat-tool);
+}
+
+.badge[data-category="other"] {
+  --badge: var(--cat-other);
+}
+
+.sub-item__cost {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 7px;
+}
+
+.sub-item__amount {
+  font-size: 1.24rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+
+.sub-item__cycle {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.sub-item__annual {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.sub-item__annual-value {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-soft);
+  font-weight: 600;
+}
+
+.sub-item__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  padding: 2px 9px;
+  border: 1px solid rgba(255, 138, 61, 0.4);
+  border-radius: 999px;
+  background: rgba(255, 138, 61, 0.12);
+  color: #ffc79c;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.sub-item__status svg {
+  width: 12px;
+  height: 12px;
+}
+
+.sub-item__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sub-item__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* 模擬取消開關 */
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 3px 4px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.switch__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.switch__track {
+  position: relative;
+  flex: none;
+  width: 44px;
+  height: 25px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.switch__thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: #d7d9ee;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+  transition: transform var(--transition), background var(--transition);
+}
+
+.switch__input:checked + .switch__track {
+  border-color: rgba(255, 138, 61, 0.7);
+  background: linear-gradient(120deg, rgba(255, 138, 61, 0.95), rgba(139, 92, 246, 0.9));
+}
+
+.switch__input:checked + .switch__track .switch__thumb {
+  background: #fff;
+  transform: translateX(19px);
+}
+
+.switch__input:focus-visible + .switch__track {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.switch__text {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.switch__input:checked ~ .switch__text {
+  color: var(--orange-bright);
+}
+
+.switch:hover .switch__track {
+  border-color: var(--border-strong);
+}
+
+/* ---------- 分類統計 ---------- */
+
+.category-list {
+  display: grid;
+  gap: 15px;
+}
+
+.category-row {
+  --cat: var(--cat-other);
+  display: grid;
+  gap: 6px;
+}
+
+.category-row[data-category="video"] {
+  --cat: var(--cat-video);
+}
+
+.category-row[data-category="music"] {
+  --cat: var(--cat-music);
+}
+
+.category-row[data-category="game"] {
+  --cat: var(--cat-game);
+}
+
+.category-row[data-category="tool"] {
+  --cat: var(--cat-tool);
+}
+
+.category-row[data-category="other"] {
+  --cat: var(--cat-other);
+}
+
+.category-row__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.category-row__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--cat);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--cat) 60%, transparent);
+}
+
+.category-row__label {
+  color: var(--text-soft);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.category-row__amount {
+  font-size: 0.9rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.category-row__track {
+  height: 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+
+.category-row__bar {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--cat) 45%, transparent), var(--cat));
+  box-shadow: 0 0 12px color-mix(in srgb, var(--cat) 40%, transparent);
+  transition: width 0.65s cubic-bezier(0.22, 0.9, 0.3, 1);
+}
+
+.category-row__share {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 說明與頁尾 ---------- */
+
+.notes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 20px;
+  padding: 4px 6px;
+}
+
+.notes p {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.79rem;
+  line-height: 1.6;
+}
+
+.notes svg {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  color: var(--violet-bright);
+}
+
+.site-footer {
+  position: relative;
+  z-index: 1;
+  width: min(1120px, 100% - 48px);
+  margin: 0 auto;
+  padding: 8px 0 40px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  color: rgba(152, 162, 204, 0.75);
+  font-size: 0.76rem;
+  text-align: center;
+}
+
+/* ---------- 對話框 ---------- */
+
+.dialog {
+  width: min(440px, calc(100% - 32px));
+  max-width: none;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 20px;
+  background: var(--surface-strong);
+  color: var(--text);
+  box-shadow: 0 40px 90px -30px rgba(0, 0, 0, 0.9), var(--shadow-glow);
+  overflow: hidden;
+}
+
+.dialog[open] {
+  animation: dialogIn 0.24s cubic-bezier(0.22, 0.9, 0.3, 1) both;
+}
+
+.dialog::backdrop {
+  background: rgba(3, 5, 15, 0.72);
+  backdrop-filter: blur(6px);
+}
+
+.dialog__form {
+  padding: 24px;
+}
+
+.dialog__title {
+  font-size: 1.16rem;
+  font-weight: 700;
+}
+
+.dialog__text {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+#delete-dialog-name {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 22px;
+}
+
+.dialog__actions .btn {
+  flex: 1 1 auto;
+}
+
+/* ---------- 狀態訊息與警示 ---------- */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 60;
+  max-width: calc(100% - 32px);
+  padding: 11px 20px;
+  border: 1px solid rgba(180, 156, 255, 0.45);
+  border-radius: 999px;
+  background: rgba(14, 20, 48, 0.97);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.9), var(--shadow-glow);
+  opacity: 0;
+  transform: translate(-50%, 14px);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  pointer-events: none;
+}
+
+.toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.toast[data-tone="error"] {
+  border-color: rgba(255, 112, 137, 0.6);
+}
+
+.alert-banner {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  z-index: 70;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: min(660px, calc(100% - 24px));
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 112, 137, 0.55);
+  border-radius: 14px;
+  background: rgba(44, 10, 28, 0.97);
+  color: #ffd7de;
+  box-shadow: 0 20px 50px -24px rgba(0, 0, 0, 0.9);
+  transform: translateX(-50%);
+  animation: dropIn 0.25s ease both;
+}
+
+.alert-banner > svg {
+  width: 19px;
+  height: 19px;
+  margin-top: 1px;
+  color: var(--danger);
+}
+
+.alert-banner p {
+  flex: 1;
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.alert-banner__close {
+  flex: none;
+  padding: 3px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #ffb3c0;
+}
+
+.alert-banner__close:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.alert-banner__close svg {
+  width: 16px;
+  height: 16px;
+}
+
+.noscript {
+  position: relative;
+  z-index: 1;
+  width: min(1120px, 100% - 48px);
+  margin: 0 auto 24px;
+  padding: 14px 18px;
+  border: 1px solid rgba(255, 138, 61, 0.4);
+  border-radius: 12px;
+  background: rgba(255, 138, 61, 0.12);
+  color: #ffd0ac;
+  font-size: 0.88rem;
+}
+
+/* ---------- 動畫 ---------- */
+
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dropIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -12px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes dialogIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes haloPulse {
+  from {
+    opacity: 0.7;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.03);
+  }
+}
+
+@keyframes twinkle {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 0.85;
+  }
+}
+
+/* ---------- 響應式 ---------- */
+
+@media (max-width: 960px) {
+  .blackhole {
+    top: -160px;
+    right: -140px;
+    width: 460px;
+    height: 460px;
+    opacity: 0.6;
+  }
+
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .stat-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .hero {
+    width: calc(100% - 32px);
+    padding-top: 52px;
+    text-align: left;
+  }
+
+  .hero__desc {
+    margin-inline: 0;
+  }
+
+  .page {
+    width: calc(100% - 32px);
+  }
+
+  .blackhole {
+    top: -150px;
+    right: -140px;
+    width: 340px;
+    height: 340px;
+    opacity: 0.42;
+  }
+
+  .stat-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .stat-card {
+    padding: 16px 18px;
+  }
+
+  .stat-card__value {
+    margin-top: 8px;
+  }
+
+  .workspace {
+    gap: 14px;
+  }
+
+  .card {
+    border-radius: 18px;
+  }
+
+  .input,
+  .select {
+    font-size: 1rem;
+  }
+
+  .sub-item {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 15px 16px;
+    gap: 12px;
+  }
+
+  .sub-item__actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding-top: 12px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.1);
+  }
+
+  .notes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .site-footer {
+    width: calc(100% - 32px);
+  }
+}
+
+@media (max-width: 460px) {
+  .hero {
+    padding-top: 40px;
+  }
+
+  .hero__title {
+    font-size: clamp(2.3rem, 11vw, 3rem);
+  }
+
+  .hero__eyebrow {
+    font-size: 0.72rem;
+  }
+
+  .section-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .form-actions .btn {
+    flex: 1 1 100%;
+  }
+
+  .sub-item__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .switch {
+    justify-content: flex-start;
+  }
+
+  .sub-item__buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .sub-item__buttons .btn {
+    min-height: 40px;
+  }
+
+  .dialog__actions .btn {
+    flex: 1 1 100%;
+  }
+
+}
+
+/* ---------- 減少動態 ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+  </style>
+</head>
+
+<body>
+  <a class="skip-link" href="#main">跳至主要內容</a>
+
+  <div class="space-decor" aria-hidden="true">
+    <div class="stars stars--far"></div>
+    <div class="stars stars--near"></div>
+    <div class="blackhole">
+      <span class="blackhole__halo"></span>
+      <span class="blackhole__disk"></span>
+      <span class="blackhole__core"></span>
+      <span class="blackhole__ring"></span>
+      <span class="blackhole__spark"></span>
+    </div>
+  </div>
+
+  <header class="hero">
+    <p class="hero__eyebrow"><span class="hero__dot"></span>訂閱支出管理</p>
+    <h1 class="hero__title">訂閱<span class="hero__title-accent">費黑洞</span></h1>
+    <p class="hero__subtitle">每月一點點，一年花多少？</p>
+    <p class="hero__desc">把每一筆訂閱攤在陽光下，看清楚一年到底被吸走多少，再決定誰該被留下。</p>
+  </header>
+
+  <main id="main" class="page">
+    <section class="overview" aria-labelledby="overview-title">
+      <div class="section-head">
+        <h2 id="overview-title" class="section-title">支出總覽</h2>
+        <p class="section-kicker">以持續訂閱 12 個月估算</p>
+      </div>
+
+      <div class="stat-grid">
+        <article class="stat-card">
+          <div class="stat-card__top">
+            <span class="stat-card__label">訂閱項目數</span>
+            <span class="stat-card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m12 3 9 5-9 5-9-5 9-5Z" />
+                <path d="m3 12 9 5 9-5" />
+                <path d="m3 17 9 5 9-5" />
+              </svg>
+            </span>
+          </div>
+          <p class="stat-card__value"><span id="stat-count">0</span><span class="stat-card__unit">筆</span></p>
+          <p class="stat-card__hint">目前保存的訂閱</p>
+        </article>
+
+        <article class="stat-card stat-card--violet">
+          <div class="stat-card__top">
+            <span class="stat-card__label">每月平均支出</span>
+            <span class="stat-card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="17" rx="3" />
+                <path d="M8 2v4M16 2v4M3 10h18" />
+                <path d="M12 13v3l2 1" />
+              </svg>
+            </span>
+          </div>
+          <p class="stat-card__value"><span id="stat-monthly">NT$0</span></p>
+          <p class="stat-card__hint">全年總支出 ÷ 12</p>
+        </article>
+
+        <article class="stat-card stat-card--orange">
+          <div class="stat-card__top">
+            <span class="stat-card__label">全年總支出</span>
+            <span class="stat-card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" />
+                <path d="M16 12h4M3 8h17" />
+                <circle cx="16.5" cy="12" r=".6" fill="currentColor" />
+              </svg>
+            </span>
+          </div>
+          <p class="stat-card__value"><span id="stat-yearly">NT$0</span></p>
+          <p class="stat-card__hint">月繳 × 12＋年繳總額</p>
+        </article>
+      </div>
+
+      <p class="estimate-note">
+        以持續訂閱 12 個月估算；月平均不代表當月實際扣款。
+      </p>
+    </section>
+
+    <div class="workspace">
+      <section class="card form-card" aria-labelledby="form-title">
+        <div class="section-head">
+          <h2 id="form-title" class="section-title">新增訂閱</h2>
+          <p class="section-kicker" id="form-mode-hint">填寫後按下新增</p>
+        </div>
+
+        <form id="subscription-form" novalidate>
+          <div class="field">
+            <label class="field__label" for="sub-name">訂閱名稱 <span class="field__required">必填</span></label>
+            <input
+              class="input"
+              id="sub-name"
+              name="name"
+              type="text"
+              maxlength="40"
+              autocomplete="off"
+              placeholder="例如：Netflix"
+              aria-describedby="name-error"
+            />
+            <p class="field__error" id="name-error" hidden></p>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="sub-amount">金額（新臺幣）<span class="field__required">必填</span></label>
+            <div class="amount-input">
+              <span class="amount-input__prefix" aria-hidden="true">NT$</span>
+              <input
+                class="input input--amount"
+                id="sub-amount"
+                name="amount"
+                type="text"
+                inputmode="decimal"
+                autocomplete="off"
+                placeholder="300"
+                aria-describedby="amount-help amount-error"
+              />
+            </div>
+            <p class="field__help" id="amount-help">必須大於 0，最多兩位小數。</p>
+            <p class="field__error" id="amount-error" hidden></p>
+          </div>
+
+          <fieldset class="field field--fieldset">
+            <legend class="field__label">付款週期</legend>
+            <div class="segmented">
+              <label class="segment">
+                <input type="radio" name="cycle" value="monthly" checked />
+                <span class="segment__label">月繳</span>
+              </label>
+              <label class="segment">
+                <input type="radio" name="cycle" value="yearly" />
+                <span class="segment__label">年繳</span>
+              </label>
+            </div>
+          </fieldset>
+
+          <div class="field">
+            <label class="field__label" for="sub-category">分類</label>
+            <div class="select-wrap">
+              <select class="input select" id="sub-category" name="category">
+                <option value="video">影音</option>
+                <option value="music">音樂</option>
+                <option value="game">遊戲</option>
+                <option value="tool">工具</option>
+                <option value="other" selected>其他</option>
+              </select>
+              <span class="select-wrap__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </span>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn--primary" id="submit-btn">新增訂閱</button>
+            <button type="button" class="btn btn--ghost" id="cancel-edit-btn" hidden>取消編輯</button>
+          </div>
+
+          <p class="form-note">資料只保存在目前瀏覽器，不會上傳到任何地方。</p>
+        </form>
+      </section>
+
+      <section class="card sim-card" aria-labelledby="sim-title">
+        <div class="section-head">
+          <h2 id="sim-title" class="section-title">取消模擬</h2>
+          <span class="pill" id="sim-count">0 筆模擬取消</span>
+        </div>
+
+        <p class="sim-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 8v5M12 16.5h.01" />
+          </svg>
+          僅供試算，不會實際取消訂閱服務。
+        </p>
+
+        <dl class="sim-list">
+          <div class="sim-list__row">
+            <dt>模擬後每月平均支出</dt>
+            <dd id="sim-monthly">NT$0</dd>
+          </div>
+          <div class="sim-list__row">
+            <dt>模擬後全年總支出</dt>
+            <dd id="sim-yearly">NT$0</dd>
+          </div>
+          <div class="sim-list__row sim-list__row--save">
+            <dt>全年可節省金額</dt>
+            <dd id="sim-savings">NT$0</dd>
+          </div>
+        </dl>
+
+        <button type="button" class="btn btn--ghost btn--block" id="reset-sim-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+            <path d="M3 3v5h5" />
+          </svg>
+          重設模擬
+        </button>
+
+        <p class="sim-hint" id="sim-hint">在下方清單開啟「模擬取消」開關，就能看到省下的金額。</p>
+      </section>
+    </div>
+
+    <section class="card list-card" aria-labelledby="list-title">
+      <div class="section-head">
+        <h2 id="list-title" class="section-title" tabindex="-1">我的訂閱 <span class="count-badge" id="list-count">0</span></h2>
+        <p class="section-kicker">原始支出，不受取消模擬影響</p>
+      </div>
+
+      <p class="empty-state" id="empty-state">目前還沒有訂閱，新增第一筆吧！</p>
+      <ul class="sub-list" id="sub-list"></ul>
+    </section>
+
+    <section class="card category-card" aria-labelledby="category-title">
+      <div class="section-head">
+        <h2 id="category-title" class="section-title">分類統計</h2>
+        <p class="section-kicker">全年費用・依原始資料計算</p>
+      </div>
+
+      <p class="empty-state empty-state--inline" id="category-empty">還沒有訂閱資料，新增後就能看到分類分布。</p>
+      <ul class="category-list" id="category-list"></ul>
+    </section>
+
+    <section class="notes" aria-label="使用說明">
+      <p>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 3 4 6v6c0 5 3.4 8 8 9 4.6-1 8-4 8-9V6l-8-3Z" />
+          <path d="M9.5 12.5 11 14l3.5-3.5" />
+        </svg>
+        資料僅保存在目前瀏覽器，清除網站資料後會遺失。
+      </p>
+      <p>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 8v5M12 16.5h.01" />
+        </svg>
+        取消模擬僅供試算，不會實際取消訂閱服務。
+      </p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>訂閱費黑洞・把訂閱看清楚，再決定要不要留。</p>
+  </footer>
+
+  <template id="sub-item-template">
+    <li class="sub-item">
+      <div class="sub-item__body">
+        <div class="sub-item__top">
+          <h3 class="sub-item__name"></h3>
+          <span class="badge"></span>
+        </div>
+        <p class="sub-item__cost">
+          <span class="sub-item__amount"></span>
+          <span class="sub-item__cycle"></span>
+        </p>
+        <p class="sub-item__annual">全年 <span class="sub-item__annual-value"></span></p>
+        <p class="sub-item__status" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m4 12 5 5L20 6" />
+          </svg>
+          已列入取消模擬
+        </p>
+      </div>
+
+      <div class="sub-item__actions">
+        <label class="switch">
+          <input type="checkbox" class="switch__input js-sim-toggle" />
+          <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
+          <span class="switch__text js-sim-text">模擬取消</span>
+        </label>
+
+        <div class="sub-item__buttons">
+          <button type="button" class="btn btn--small js-edit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z" />
+            </svg>
+            編輯
+          </button>
+          <button type="button" class="btn btn--small btn--danger js-delete">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13" />
+              <path d="M10 11v5M14 11v5" />
+            </svg>
+            刪除
+          </button>
+        </div>
+      </div>
+    </li>
+  </template>
+
+  <dialog class="dialog" id="delete-dialog" aria-labelledby="delete-dialog-title">
+    <form method="dialog" class="dialog__form">
+      <h2 class="dialog__title" id="delete-dialog-title">刪除這筆訂閱？</h2>
+      <p class="dialog__text">
+        即將刪除「<span id="delete-dialog-name"></span>」。刪除後無法復原，統計與分類也會一起更新。
+      </p>
+      <div class="dialog__actions">
+        <button type="submit" value="cancel" class="btn btn--ghost">保留訂閱</button>
+        <button type="submit" value="confirm" class="btn btn--danger-solid">確認刪除</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="status-region" role="status" aria-live="polite"></div>
+
+  <div class="alert-banner" id="storage-alert" role="alert" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M12 3 2.5 20h19L12 3Z" />
+      <path d="M12 9v5M12 17.5h.01" />
+    </svg>
+    <p id="storage-alert-text"></p>
+    <button type="button" class="alert-banner__close" id="storage-alert-close" aria-label="關閉提示">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <path d="m6 6 12 12M18 6 6 18" />
+      </svg>
+    </button>
+  </div>
+
+  <noscript>
+    <p class="noscript">這個工具需要 JavaScript 才能計算與保存訂閱資料，請開啟 JavaScript 後重新整理。</p>
+  </noscript>
+
+  <script>
+"use strict";
+
+/* ==========================================================================
+   訂閱費黑洞 — 原生 JavaScript
+   資料只保存在 localStorage；取消模擬只存在記憶體，重新整理即重設。
+   ========================================================================== */
+
+const STORAGE_KEY = "subscription-blackhole.v1";
+const MAX_NAME_LENGTH = 40;
+
+const CATEGORIES = [
+  { id: "video", label: "影音" },
+  { id: "music", label: "音樂" },
+  { id: "game", label: "遊戲" },
+  { id: "tool", label: "工具" },
+  { id: "other", label: "其他" },
+];
+
+const CATEGORY_LABELS = new Map(CATEGORIES.map((category) => [category.id, category.label]));
+const CYCLE_LABELS = { monthly: "月繳", yearly: "年繳" };
+const CYCLE_SUFFIXES = { monthly: "／月", yearly: "／年" };
+
+const state = {
+  subscriptions: [],
+  simulatedIds: new Set(),
+  editingId: null,
+  pendingDeleteId: null,
+};
+
+/* ---------- DOM ---------- */
+
+const els = {
+  form: document.querySelector("#subscription-form"),
+  formCard: document.querySelector(".form-card"),
+  formTitle: document.querySelector("#form-title"),
+  formModeHint: document.querySelector("#form-mode-hint"),
+  nameInput: document.querySelector("#sub-name"),
+  amountInput: document.querySelector("#sub-amount"),
+  categorySelect: document.querySelector("#sub-category"),
+  nameError: document.querySelector("#name-error"),
+  amountError: document.querySelector("#amount-error"),
+  submitBtn: document.querySelector("#submit-btn"),
+  cancelEditBtn: document.querySelector("#cancel-edit-btn"),
+
+  statCount: document.querySelector("#stat-count"),
+  statMonthly: document.querySelector("#stat-monthly"),
+  statYearly: document.querySelector("#stat-yearly"),
+
+  simCount: document.querySelector("#sim-count"),
+  simMonthly: document.querySelector("#sim-monthly"),
+  simYearly: document.querySelector("#sim-yearly"),
+  simSavings: document.querySelector("#sim-savings"),
+  simHint: document.querySelector("#sim-hint"),
+  resetSimBtn: document.querySelector("#reset-sim-btn"),
+
+  listTitle: document.querySelector("#list-title"),
+  listCount: document.querySelector("#list-count"),
+  list: document.querySelector("#sub-list"),
+  emptyState: document.querySelector("#empty-state"),
+  itemTemplate: document.querySelector("#sub-item-template"),
+
+  categoryList: document.querySelector("#category-list"),
+  categoryEmpty: document.querySelector("#category-empty"),
+
+  deleteDialog: document.querySelector("#delete-dialog"),
+  deleteDialogName: document.querySelector("#delete-dialog-name"),
+
+  statusRegion: document.querySelector("#status-region"),
+  storageAlert: document.querySelector("#storage-alert"),
+  storageAlertText: document.querySelector("#storage-alert-text"),
+  storageAlertClose: document.querySelector("#storage-alert-close"),
+};
+
+const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+/* ---------- 金額工具 ---------- */
+
+const twdFormatter = new Intl.NumberFormat("zh-TW", {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+});
+
+function round2(value) {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+function formatTWD(value) {
+  const safeValue = Math.abs(value) < 0.005 ? 0 : value;
+  return `NT$${twdFormatter.format(round2(safeValue))}`;
+}
+
+function yearlyCost(subscription) {
+  return round2(
+    subscription.cycle === "monthly" ? subscription.amount * 12 : subscription.amount
+  );
+}
+
+function createId() {
+  if (window.crypto && typeof window.crypto.randomUUID === "function") {
+    return window.crypto.randomUUID();
+  }
+  return `sub-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+/* ---------- 儲存 ---------- */
+
+function showStorageAlert(message) {
+  els.storageAlertText.textContent = message;
+  els.storageAlert.hidden = false;
+}
+
+function sanitizeSubscription(raw) {
+  if (!raw || typeof raw !== "object") return null;
+
+  const name = typeof raw.name === "string" ? raw.name.trim() : "";
+  const amount = typeof raw.amount === "number" ? raw.amount : Number(raw.amount);
+  const cycle = raw.cycle === "monthly" || raw.cycle === "yearly" ? raw.cycle : null;
+  const category = CATEGORY_LABELS.has(raw.category) ? raw.category : null;
+
+  if (!name || !Number.isFinite(amount) || amount <= 0 || !cycle || !category) {
+    return null;
+  }
+
+  return {
+    id: typeof raw.id === "string" && raw.id ? raw.id : createId(),
+    name: name.slice(0, MAX_NAME_LENGTH),
+    amount: round2(amount),
+    cycle,
+    category,
+  };
+}
+
+function loadSubscriptions() {
+  let raw;
+  try {
+    raw = window.localStorage.getItem(STORAGE_KEY);
+  } catch (error) {
+    showStorageAlert("瀏覽器目前無法使用本機儲存空間，這次的資料將不會被保存。");
+    return [];
+  }
+
+  if (!raw) return [];
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) throw new Error("資料格式錯誤");
+
+    const subscriptions = parsed.map(sanitizeSubscription).filter(Boolean);
+    if (subscriptions.length !== parsed.length) {
+      showStorageAlert("部分訂閱資料格式不完整，已略過無法讀取的項目。");
+    }
+    return subscriptions;
+  } catch (error) {
+    showStorageAlert("讀取先前資料時發生問題，已從空白清單開始。");
+    return [];
+  }
+}
+
+function persistSubscriptions() {
+  const payload = state.subscriptions.map(({ id, name, amount, cycle, category }) => ({
+    id,
+    name,
+    amount,
+    cycle,
+    category,
+  }));
+
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    return true;
+  } catch (error) {
+    showStorageAlert(
+      "資料儲存失敗：瀏覽器空間可能已滿，或目前使用隱私模式。畫面資料仍會保留，但關閉後可能遺失。"
+    );
+    return false;
+  }
+}
+
+/* ---------- 計算 ---------- */
+
+function calcTotals(subscriptions, simulatedIds) {
+  let totalYearly = 0;
+  let simulatedYearly = 0;
+  let simulatedCount = 0;
+
+  subscriptions.forEach((subscription) => {
+    const yearly = yearlyCost(subscription);
+    totalYearly += yearly;
+    if (simulatedIds.has(subscription.id)) {
+      simulatedCount += 1;
+    } else {
+      simulatedYearly += yearly;
+    }
+  });
+
+  totalYearly = round2(totalYearly);
+  simulatedYearly = round2(simulatedYearly);
+
+  return {
+    count: subscriptions.length,
+    yearly: totalYearly,
+    monthly: round2(totalYearly / 12),
+    simulatedCount,
+    simulatedYearly,
+    simulatedMonthly: round2(simulatedYearly / 12),
+    savings: round2(totalYearly - simulatedYearly),
+  };
+}
+
+/* ---------- 渲染：統計與模擬 ---------- */
+
+function renderSummary() {
+  const totals = calcTotals(state.subscriptions, state.simulatedIds);
+  els.statCount.textContent = String(totals.count);
+  els.statMonthly.textContent = formatTWD(totals.monthly);
+  els.statYearly.textContent = formatTWD(totals.yearly);
+  els.listCount.textContent = String(totals.count);
+  return totals;
+}
+
+function renderSimulation(totals) {
+  const summary = totals || calcTotals(state.subscriptions, state.simulatedIds);
+
+  els.simCount.textContent = `${summary.simulatedCount} 筆模擬取消`;
+  els.simMonthly.textContent = formatTWD(summary.simulatedMonthly);
+  els.simYearly.textContent = formatTWD(summary.simulatedYearly);
+  els.simSavings.textContent = formatTWD(summary.savings);
+
+  if (state.subscriptions.length === 0) {
+    els.simHint.textContent = "新增訂閱後，就能試算取消後能省下多少。";
+  } else if (summary.simulatedCount === 0) {
+    els.simHint.textContent = "在下方清單開啟「模擬取消」開關，就能看到省下的金額。";
+  } else {
+    els.simHint.textContent = `已模擬取消 ${summary.simulatedCount} 筆，原始支出仍完整保留在總覽中。`;
+  }
+}
+
+/* ---------- 渲染：清單 ---------- */
+
+function createListItem(subscription) {
+  const isSimulated = state.simulatedIds.has(subscription.id);
+  const fragment = els.itemTemplate.content.cloneNode(true);
+  const item = fragment.querySelector(".sub-item");
+
+  item.dataset.id = subscription.id;
+  item.classList.toggle("is-simulated", isSimulated);
+  item.classList.toggle("is-editing", state.editingId === subscription.id);
+
+  const nameEl = item.querySelector(".sub-item__name");
+  nameEl.textContent = subscription.name;
+
+  const badge = item.querySelector(".badge");
+  badge.textContent = CATEGORY_LABELS.get(subscription.category) || "其他";
+  badge.dataset.category = subscription.category;
+
+  item.querySelector(".sub-item__amount").textContent = formatTWD(subscription.amount);
+  item.querySelector(".sub-item__cycle").textContent = CYCLE_SUFFIXES[subscription.cycle];
+  item.querySelector(".sub-item__annual-value").textContent = formatTWD(
+    yearlyCost(subscription)
+  );
+
+  const toggle = item.querySelector(".js-sim-toggle");
+  toggle.checked = isSimulated;
+  toggle.setAttribute("aria-label", `模擬取消「${subscription.name}」`);
+
+  item.querySelector(".js-sim-text").textContent = isSimulated ? "已模擬取消" : "模擬取消";
+  item.querySelector(".sub-item__status").hidden = !isSimulated;
+
+  const editBtn = item.querySelector(".js-edit");
+  editBtn.setAttribute("aria-label", `編輯「${subscription.name}」`);
+  editBtn.title = "編輯這筆訂閱";
+
+  const deleteBtn = item.querySelector(".js-delete");
+  deleteBtn.setAttribute("aria-label", `刪除「${subscription.name}」`);
+  deleteBtn.title = "刪除這筆訂閱";
+
+  return fragment;
+}
+
+function renderList() {
+  els.list.replaceChildren();
+  const hasSubscriptions = state.subscriptions.length > 0;
+
+  els.emptyState.hidden = hasSubscriptions;
+  els.list.hidden = !hasSubscriptions;
+  els.listCount.textContent = String(state.subscriptions.length);
+
+  if (!hasSubscriptions) return;
+
+  state.subscriptions.forEach((subscription) => {
+    els.list.appendChild(createListItem(subscription));
+  });
+}
+
+function applySimulationToItem(item, subscription) {
+  const isSimulated = state.simulatedIds.has(subscription.id);
+
+  item.classList.toggle("is-simulated", isSimulated);
+  item.querySelector(".js-sim-toggle").checked = isSimulated;
+  item.querySelector(".js-sim-text").textContent = isSimulated ? "已模擬取消" : "模擬取消";
+  item.querySelector(".sub-item__status").hidden = !isSimulated;
+}
+
+/* ---------- 渲染：分類統計 ---------- */
+
+function renderCategories() {
+  const hasSubscriptions = state.subscriptions.length > 0;
+  els.categoryEmpty.hidden = hasSubscriptions;
+  els.categoryList.hidden = !hasSubscriptions;
+  els.categoryList.replaceChildren();
+
+  if (!hasSubscriptions) return;
+
+  const totals = new Map(CATEGORIES.map((category) => [category.id, 0]));
+  state.subscriptions.forEach((subscription) => {
+    totals.set(
+      subscription.category,
+      round2(totals.get(subscription.category) + yearlyCost(subscription))
+    );
+  });
+
+  const total = round2(
+    Array.from(totals.values()).reduce((sum, value) => sum + value, 0)
+  );
+  const max = Math.max(...totals.values());
+
+  CATEGORIES.forEach((category) => {
+    const value = round2(totals.get(category.id));
+    const share = total > 0 ? Math.round((value / total) * 100) : 0;
+    const width =
+      max > 0 && value > 0 ? Math.max(3, Math.min(100, (value / max) * 100)) : 0;
+
+    const row = document.createElement("li");
+    row.className = "category-row";
+    row.dataset.category = category.id;
+
+    const head = document.createElement("div");
+    head.className = "category-row__head";
+
+    const dot = document.createElement("span");
+    dot.className = "category-row__dot";
+    dot.setAttribute("aria-hidden", "true");
+
+    const label = document.createElement("span");
+    label.className = "category-row__label";
+    label.textContent = category.label;
+
+    const amount = document.createElement("span");
+    amount.className = "category-row__amount";
+    amount.textContent = formatTWD(value);
+
+    head.append(dot, label, amount);
+
+    const track = document.createElement("div");
+    track.className = "category-row__track";
+    track.setAttribute("aria-hidden", "true");
+
+    const bar = document.createElement("span");
+    bar.className = "category-row__bar";
+    bar.style.width = `${width}%`;
+    track.appendChild(bar);
+
+    const shareText = document.createElement("p");
+    shareText.className = "category-row__share";
+    if (value <= 0) {
+      shareText.textContent = "尚無支出";
+    } else if (share === 0) {
+      shareText.textContent = "佔全年支出不到 1%";
+    } else {
+      shareText.textContent = `佔全年支出 ${share}%`;
+    }
+
+    row.append(head, track, shareText);
+    els.categoryList.appendChild(row);
+  });
+}
+
+/* ---------- 整體渲染 ---------- */
+
+function renderAll() {
+  const totals = renderSummary();
+  renderSimulation(totals);
+  renderList();
+  renderCategories();
+}
+
+/* ---------- 提示訊息 ---------- */
+
+let toastTimer = 0;
+
+function announce(message, tone = "success") {
+  els.statusRegion.textContent = message;
+  els.statusRegion.dataset.tone = tone;
+  els.statusRegion.classList.add("is-visible");
+
+  window.clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => {
+    els.statusRegion.classList.remove("is-visible");
+  }, 4200);
+}
+
+/* ---------- 表單驗證 ---------- */
+
+function setFieldError(field, message) {
+  const errorEl = field === "name" ? els.nameError : els.amountError;
+  const inputEl = field === "name" ? els.nameInput : els.amountInput;
+
+  errorEl.textContent = message;
+  errorEl.hidden = !message;
+
+  if (message) {
+    inputEl.setAttribute("aria-invalid", "true");
+  } else {
+    inputEl.removeAttribute("aria-invalid");
+  }
+}
+
+function clearFieldError(field) {
+  setFieldError(field, "");
+}
+
+function clearAllErrors() {
+  clearFieldError("name");
+  clearFieldError("amount");
+}
+
+function validateFields({ name, amountRaw }) {
+  const errors = {};
+
+  if (!name) {
+    errors.name = "請輸入訂閱名稱。";
+  } else if (name.length > MAX_NAME_LENGTH) {
+    errors.name = `名稱最多 ${MAX_NAME_LENGTH} 個字。`;
+  }
+
+  if (!amountRaw) {
+    errors.amount = "請輸入金額。";
+  } else if (!/^\d+(\.\d{1,2})?$/.test(amountRaw)) {
+    errors.amount = "請輸入有效的金額，最多兩位小數（例如 300 或 1200.50）。";
+  } else if (!(Number(amountRaw) > 0)) {
+    errors.amount = "金額必須大於 0。";
+  }
+
+  return errors;
+}
+
+function getFormValues() {
+  const checkedCycle = els.form.querySelector('input[name="cycle"]:checked');
+
+  return {
+    name: els.nameInput.value.trim(),
+    amountRaw: els.amountInput.value.trim(),
+    cycle: checkedCycle ? checkedCycle.value : "monthly",
+    category: els.categorySelect.value,
+  };
+}
+
+/* ---------- 編輯模式 ---------- */
+
+function startEdit(subscriptionId) {
+  const subscription = state.subscriptions.find((item) => item.id === subscriptionId);
+  if (!subscription) return;
+
+  state.editingId = subscriptionId;
+
+  els.nameInput.value = subscription.name;
+  els.amountInput.value = String(subscription.amount);
+  els.categorySelect.value = subscription.category;
+
+  const cycleInput = els.form.querySelector(
+    `input[name="cycle"][value="${subscription.cycle}"]`
+  );
+  if (cycleInput) cycleInput.checked = true;
+
+  els.formTitle.textContent = "編輯訂閱";
+  els.formModeHint.textContent = `正在編輯「${subscription.name}」`;
+  els.submitBtn.textContent = "儲存變更";
+  els.cancelEditBtn.hidden = false;
+
+  clearAllErrors();
+  renderList();
+
+  els.formCard.scrollIntoView({
+    behavior: prefersReducedMotion.matches ? "auto" : "smooth",
+    block: "start",
+  });
+  els.nameInput.focus({ preventScroll: true });
+  announce(`正在編輯「${subscription.name}」`);
+}
+
+function resetForm(options = {}) {
+  const { render = true } = options;
+
+  state.editingId = null;
+  els.form.reset();
+  els.formTitle.textContent = "新增訂閱";
+  els.formModeHint.textContent = "填寫後按下新增";
+  els.submitBtn.textContent = "新增訂閱";
+  els.cancelEditBtn.hidden = true;
+
+  clearAllErrors();
+  if (render) renderList();
+}
+
+/* ---------- 新增 / 更新 ---------- */
+
+function handleSubmit(event) {
+  event.preventDefault();
+
+  const values = getFormValues();
+  const errors = validateFields(values);
+
+  clearAllErrors();
+
+  if (Object.keys(errors).length > 0) {
+    if (errors.name) setFieldError("name", errors.name);
+    if (errors.amount) setFieldError("amount", errors.amount);
+    if (errors.name) {
+      els.nameInput.focus();
+    } else {
+      els.amountInput.focus();
+    }
+    announce("請先修正表單中的錯誤。", "error");
+    return;
+  }
+
+  const payload = {
+    name: values.name,
+    amount: round2(Number(values.amountRaw)),
+    cycle: values.cycle,
+    category: values.category,
+  };
+
+  if (state.editingId) {
+    const index = state.subscriptions.findIndex((item) => item.id === state.editingId);
+    if (index !== -1) {
+      state.subscriptions[index] = { ...state.subscriptions[index], ...payload };
+    }
+    const saved = persistSubscriptions();
+    resetForm({ render: false });
+    renderAll();
+    announce(
+      saved ? `已更新「${payload.name}」` : `已更新「${payload.name}」，但資料無法保存到瀏覽器。`,
+      saved ? "success" : "error"
+    );
+    return;
+  }
+
+  state.subscriptions.push({ id: createId(), ...payload });
+  const saved = persistSubscriptions();
+  resetForm({ render: false });
+  renderAll();
+  announce(
+    saved ? `已新增「${payload.name}」` : `已新增「${payload.name}」，但資料無法保存到瀏覽器。`,
+    saved ? "success" : "error"
+  );
+}
+
+/* ---------- 刪除 ---------- */
+
+function performDelete(subscriptionId) {
+  const subscription = state.subscriptions.find((item) => item.id === subscriptionId);
+  if (!subscription) return;
+
+  state.subscriptions = state.subscriptions.filter((item) => item.id !== subscriptionId);
+  state.simulatedIds.delete(subscriptionId);
+
+  if (state.editingId === subscriptionId) {
+    resetForm({ render: false });
+  }
+
+  persistSubscriptions();
+  renderAll();
+  announce(`已刪除「${subscription.name}」`);
+  els.listTitle.focus();}
+
+function openDeleteDialog(subscription, trigger) {
+  state.pendingDeleteId = subscription.id;
+  els.deleteDialogName.textContent = subscription.name;
+
+  if (typeof els.deleteDialog.showModal === "function") {
+    els.deleteDialog.showModal();
+    return;
+  }
+
+  if (window.confirm(`確定要刪除「${subscription.name}」嗎？`)) {
+    performDelete(subscription.id);
+  } else if (trigger) {
+    trigger.focus();
+  }
+}
+
+/* ---------- 模擬取消 ---------- */
+
+function toggleSimulation(subscriptionId, isSimulated) {
+  const subscription = state.subscriptions.find((item) => item.id === subscriptionId);
+  if (!subscription) return;
+
+  if (isSimulated) {
+    state.simulatedIds.add(subscriptionId);
+  } else {
+    state.simulatedIds.delete(subscriptionId);
+  }
+
+  const item = els.list.querySelector(`.sub-item[data-id="${CSS.escape(subscriptionId)}"]`);
+  if (item) applySimulationToItem(item, subscription);
+
+  renderSimulation();
+  announce(
+    isSimulated
+      ? `「${subscription.name}」已加入取消模擬`
+      : `「${subscription.name}」已移出取消模擬`
+  );
+}
+
+function resetSimulation() {
+  if (state.simulatedIds.size === 0) {
+    announce("目前沒有模擬取消的項目。");
+    return;
+  }
+
+  state.simulatedIds.clear();
+  renderSimulation();
+  renderList();
+  announce("已重設取消模擬");
+}
+
+/* ---------- 事件 ---------- */
+
+function bindEvents() {
+  els.form.addEventListener("submit", handleSubmit);
+
+  els.cancelEditBtn.addEventListener("click", () => {
+    resetForm();
+    els.nameInput.focus();
+    announce("已取消編輯");
+  });
+
+  els.nameInput.addEventListener("input", () => clearFieldError("name"));
+  els.amountInput.addEventListener("input", () => clearFieldError("amount"));
+
+  els.list.addEventListener("change", (event) => {
+    const toggle = event.target.closest(".js-sim-toggle");
+    if (!toggle) return;
+
+    const item = toggle.closest(".sub-item");
+    if (!item) return;
+
+    toggleSimulation(item.dataset.id, toggle.checked);
+  });
+
+  els.list.addEventListener("click", (event) => {
+    const item = event.target.closest(".sub-item");
+    if (!item) return;
+
+    const subscription = state.subscriptions.find((entry) => entry.id === item.dataset.id);
+    if (!subscription) return;
+
+    if (event.target.closest(".js-edit")) {
+      startEdit(subscription.id);
+      return;
+    }
+
+    const deleteBtn = event.target.closest(".js-delete");
+    if (deleteBtn) {
+      openDeleteDialog(subscription, deleteBtn);
+    }
+  });
+
+  els.deleteDialog.addEventListener("click", (event) => {
+    const button = event.target.closest("button[value]");
+    if (!button) return;
+
+    const id = state.pendingDeleteId;
+    state.pendingDeleteId = null;
+
+    if (button.value === "confirm" && id) performDelete(id);
+  });
+
+  els.deleteDialog.addEventListener("close", () => {
+    state.pendingDeleteId = null;
+  });
+
+  els.resetSimBtn.addEventListener("click", resetSimulation);
+
+  els.storageAlertClose.addEventListener("click", () => {
+    els.storageAlert.hidden = true;
+  });
+}
+
+/* ---------- 啟動 ---------- */
+
+function init() {
+  state.subscriptions = loadSubscriptions();
+  bindEvents();
+  renderAll();
+}
+
+init();
+  </script>
+</body>
+</html>
